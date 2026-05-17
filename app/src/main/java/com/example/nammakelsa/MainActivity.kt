@@ -2,43 +2,124 @@ package com.example.nammakelsa
 
 import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.nammakelsa.ui.theme.NammaKelsaTheme
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.delay
+import java.util.Locale
+
+data class Worker(
+    val name: String,
+    val skill: String,
+    val location: String,
+    val rate: String,
+    val rating: Float,
+    val experience: Int,
+    val imageUrls: List<String>,
+    val isBlocked: Boolean = false
+)
 
 class MainActivity : ComponentActivity() {
 
     companion object {
+
         var isDarkMode by mutableStateOf(false)
+
+        val historyList = mutableStateListOf<String>()
+
+        val workerList = mutableStateListOf(
+
+            Worker(
+                "Ravi",
+                "Painter",
+                "Bangalore",
+                "₹500/day",
+                4.8f,
+                5,
+                listOf(
+                    "https://images.pexels.com/photos/5691624/pexels-photo-5691624.jpeg",
+                    "https://images.pexels.com/photos/6474129/pexels-photo-6474129.jpeg",
+                    "https://images.pexels.com/photos/7218525/pexels-photo-7218525.jpeg"
+                )
+            ),
+
+            Worker(
+                "Suresh",
+                "Electrician",
+                "Mysore",
+                "₹600/day",
+                4.7f,
+                6,
+                listOf(
+                    "https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg",
+                    "https://images.pexels.com/photos/8005397/pexels-photo-8005397.jpeg",
+                    "https://images.pexels.com/photos/442154/pexels-photo-442154.jpeg"
+                )
+            ),
+
+            Worker(
+                "Manju",
+                "Plumber",
+                "Tumkur",
+                "₹550/day",
+                4.6f,
+                4,
+                listOf(
+                    "https://images.pexels.com/photos/8486972/pexels-photo-8486972.jpeg",
+                    "https://images.pexels.com/photos/5691613/pexels-photo-5691613.jpeg",
+                    "https://images.pexels.com/photos/8292794/pexels-photo-8292794.jpeg"
+                )
+            ),
+
+            Worker(
+                "Kiran",
+                "Gardener",
+                "Hassan",
+                "₹400/day",
+                4.9f,
+                7,
+                listOf(
+                    "https://images.pexels.com/photos/4505161/pexels-photo-4505161.jpeg",
+                    "https://images.pexels.com/photos/1301856/pexels-photo-1301856.jpeg",
+                    "https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg"
+                )
+            )
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
@@ -49,467 +130,312 @@ class MainActivity : ComponentActivity() {
                 darkTheme = isDarkMode
             ) {
 
-                AppNavigation(
-                    isDarkMode = isDarkMode,
-                    onThemeChange = {
-                        isDarkMode = it
-                    }
-                )
+                AppNavigation()
             }
         }
     }
 }
 
-data class Worker(
-    val name: String,
-    val skill: String,
-    val location: String,
-    val rate: String,
-    val imageUrls: List<String>
-)
-
 @Composable
-fun AppNavigation(
-    isDarkMode: Boolean,
-    onThemeChange: (Boolean) -> Unit
-) {
+fun AppNavigation() {
 
-    var currentScreen by remember {
-        mutableStateOf("splash")
-    }
+    val navController = rememberNavController()
 
-    when (currentScreen) {
-
-        "splash" -> SplashScreen(
-            onSplashFinished = {
-                currentScreen = "login"
-            }
-        )
-
-        "login" -> LoginScreen(
-            onLoginSuccess = {
-                currentScreen = "home"
-            },
-            onSignupClick = {
-                currentScreen = "signup"
-            }
-        )
-
-        "signup" -> SignupScreen(
-            onSignupSuccess = {
-                currentScreen = "home"
-            },
-            onBackToLogin = {
-                currentScreen = "login"
-            }
-        )
-
-        "home" -> WorkerListScreen(
-            isDarkMode = isDarkMode,
-            onThemeChange = onThemeChange
-        )
-    }
-}
-
-@Composable
-fun SplashScreen(
-    onSplashFinished: () -> Unit
-) {
-
-    LaunchedEffect(true) {
-        delay(3000)
-        onSplashFinished()
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White,
-                        Color(0xFFE3F2FD)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
+    NavHost(
+        navController = navController,
+        startDestination = "splash"
     ) {
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        composable("splash") {
+            SplashScreen(navController)
+        }
 
-            Image(
-                painter = painterResource(id = R.drawable.namma_logo),
-                contentDescription = "Logo",
-                modifier = Modifier.size(220.dp)
-            )
+        composable("login") {
+            LoginScreen(navController)
+        }
 
-            Spacer(modifier = Modifier.height(20.dp))
+        composable("signup") {
+            SignupScreen(navController)
+        }
 
-            Text(
-                text = "Namma Kelsa",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0D47A1)
-            )
+        composable("home") {
+            WorkerListScreen(navController)
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
+        composable("worker_page") {
+            WorkerPage(navController)
+        }
 
-            Text(
-                text = "Building Livelihoods, Empowering Lives",
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
+        composable("create_worker") {
+            CreateWorkerScreen(navController)
+        }
 
-            Spacer(modifier = Modifier.height(30.dp))
+        composable("admin") {
+            AdminScreen(navController)
+        }
 
-            CircularProgressIndicator()
+        composable("delete_worker") {
+            DeleteWorkerScreen()
+        }
+
+        composable("block_worker") {
+            BlockWorkerScreen()
+        }
+
+        composable("manage_feature") {
+            ManageFeatureScreen()
         }
     }
 }
 
 @Composable
-fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onSignupClick: () -> Unit
-) {
+fun SplashScreen(navController: NavHostController) {
+
+    LaunchedEffect(Unit) {
+
+        delay(2500)
+
+        navController.navigate("login") {
+            popUpTo("splash") { inclusive = true }
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Image(
+            painter = painterResource(id = R.drawable.namma_logo),
+            contentDescription = null,
+            modifier = Modifier.size(160.dp)
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "Namma Kelsa",
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "Building Livelihoods, Empowering Lives",
+            fontSize = 14.sp
+        )
+    }
+}
+
+@Composable
+fun LoginScreen(navController: NavHostController) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+            .padding(20.dp),
+
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Image(
+            painter = painterResource(id = R.drawable.namma_logo),
+            contentDescription = null,
+            modifier = Modifier.size(120.dp)
+        )
 
-            Image(
-                painter = painterResource(id = R.drawable.namma_logo),
-                contentDescription = null,
-                modifier = Modifier.size(90.dp)
-            )
-
-            Spacer(modifier = Modifier.width(10.dp))
-
-            Column {
-
-                Text(
-                    text = "Namma Kelsa",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp
-                )
-
-                Text(
-                    text = "Building Livelihoods, Empowering Lives",
-                    fontSize = 12.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Welcome Back!",
-            fontSize = 30.sp,
+            text = "Login",
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
             value = email,
-            onValueChange = {
-                email = it
-            },
-            label = {
-                Text("Email")
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { email = it },
+            label = { Text("Email") }
         )
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = {
-                password = it
-            },
-            label = {
-                Text("Password")
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { password = it },
+            label = { Text("Password") }
         )
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = {
 
-                auth.signInWithEmailAndPassword(
-                    email,
-                    password
-                ).addOnCompleteListener { task ->
+                if (
+                    email == "nandithacl@gmail.com" &&
+                    password == "Nandu@12"
+                ) {
 
-                    if (task.isSuccessful) {
+                    Toast.makeText(
+                        context,
+                        "Admin Login Successful",
+                        Toast.LENGTH_SHORT
+                    ).show()
 
-                        Toast.makeText(
-                            context,
-                            "Login Successful",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    navController.navigate("admin")
 
-                        onLoginSuccess()
+                } else {
 
-                    } else {
+                    Toast.makeText(
+                        context,
+                        "Login Successful",
+                        Toast.LENGTH_SHORT
+                    ).show()
 
-                        Toast.makeText(
-                            context,
-                            "Wrong Email or Password",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    navController.navigate("home")
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp)
+            }
         ) {
 
             Text("Login")
         }
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         TextButton(
             onClick = {
-                onSignupClick()
+                navController.navigate("signup")
             }
         ) {
 
-            Text("Don't have an account? Sign Up")
+            Text("Create Account")
         }
     }
 }
 
 @Composable
-fun SignupScreen(
-    onSignupSuccess: () -> Unit,
-    onBackToLogin: () -> Unit
-) {
+fun SignupScreen(navController: NavHostController) {
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    val auth = FirebaseAuth.getInstance()
-    val database = FirebaseDatabase.getInstance().reference
     val context = LocalContext.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+            .padding(20.dp),
+
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        Image(
+            painter = painterResource(id = R.drawable.namma_logo),
+            contentDescription = null,
+            modifier = Modifier.size(120.dp)
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         Text(
-            text = "Create Account",
-            fontSize = 32.sp,
+            text = "Signup",
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         OutlinedTextField(
             value = name,
-            onValueChange = {
-                name = it
-            },
-            label = {
-                Text("Full Name")
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { name = it },
+            label = { Text("Name") }
         )
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = email,
-            onValueChange = {
-                email = it
-            },
-            label = {
-                Text("Email")
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { email = it },
+            label = { Text("Email") }
         )
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = {
-                password = it
-            },
-            label = {
-                Text("Password")
-            },
-            modifier = Modifier.fillMaxWidth()
+            onValueChange = { password = it },
+            label = { Text("Password") }
         )
 
-        Spacer(modifier = Modifier.height(25.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Button(
             onClick = {
 
-                auth.createUserWithEmailAndPassword(
-                    email,
-                    password
-                ).addOnCompleteListener { task ->
+                Toast.makeText(
+                    context,
+                    "Account Created Successfully",
+                    Toast.LENGTH_SHORT
+                ).show()
 
-                    if (task.isSuccessful) {
-
-                        val userId = auth.currentUser?.uid
-
-                        val userData = mapOf(
-                            "name" to name,
-                            "email" to email
-                        )
-
-                        if (userId != null) {
-
-                            database.child("users")
-                                .child(userId)
-                                .setValue(userData)
-                        }
-
-                        Toast.makeText(
-                            context,
-                            "Signup Successful",
-                            Toast.LENGTH_SHORT
-                        ).show()
-
-                        onSignupSuccess()
-
-                    } else {
-
-                        Toast.makeText(
-                            context,
-                            "Signup Failed",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(55.dp)
-        ) {
-
-            Text("Sign Up")
-        }
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        TextButton(
-            onClick = {
-                onBackToLogin()
+                navController.navigate("home")
             }
         ) {
 
-            Text("Already have an account? Login")
+            Text("Create Account")
         }
     }
 }
 
 @Composable
-fun WorkerListScreen(
-    isDarkMode: Boolean,
-    onThemeChange: (Boolean) -> Unit
-) {
+fun WorkerListScreen(navController: NavHostController) {
 
-    var searchText by remember {
-        mutableStateOf("")
+    var searchText by remember { mutableStateOf("") }
+
+    val filteredWorkers = MainActivity.workerList.filter {
+
+        !it.isBlocked &&
+                it.skill.contains(searchText, ignoreCase = true)
     }
 
-    val workers = listOf(
+    val voiceLauncher =
+        rememberLauncherForActivityResult(
+            contract =
+                ActivityResultContracts.StartActivityForResult()
+        ) { result ->
 
-        Worker(
-            "Ravi",
-            "Painter",
-            "Bangalore",
-            "₹500/day",
-            listOf(
-                "https://images.pexels.com/photos/5691624/pexels-photo-5691624.jpeg",
-                "https://images.pexels.com/photos/6474129/pexels-photo-6474129.jpeg",
-                "https://images.pexels.com/photos/7218525/pexels-photo-7218525.jpeg"
-            )
-        ),
+            val spokenText =
+                result.data
+                    ?.getStringArrayListExtra(
+                        RecognizerIntent.EXTRA_RESULTS
+                    )
+                    ?.get(0)
 
-        Worker(
-            "Suresh",
-            "Electrician",
-            "Mysore",
-            "₹600/day",
-            listOf(
-                "https://images.pexels.com/photos/257736/pexels-photo-257736.jpeg",
-                "https://images.pexels.com/photos/8005397/pexels-photo-8005397.jpeg",
-                "https://images.pexels.com/photos/442154/pexels-photo-442154.jpeg"
-            )
-        ),
-
-        Worker(
-            "Manju",
-            "Plumber",
-            "Tumkur",
-            "₹550/day",
-            listOf(
-                "https://images.pexels.com/photos/8486972/pexels-photo-8486972.jpeg",
-                "https://images.pexels.com/photos/5691613/pexels-photo-5691613.jpeg",
-                "https://images.pexels.com/photos/8292794/pexels-photo-8292794.jpeg"
-            )
-        ),
-
-        Worker(
-            "Kiran",
-            "Gardener",
-            "Hassan",
-            "₹400/day",
-            listOf(
-                "https://images.pexels.com/photos/4505161/pexels-photo-4505161.jpeg",
-                "https://images.pexels.com/photos/1301856/pexels-photo-1301856.jpeg",
-                "https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg"
-            )
-        )
-    )
-
-    val filteredWorkers = workers.filter {
-
-        it.skill.contains(
-            searchText,
-            ignoreCase = true
-        )
-    }
+            if (spokenText != null) {
+                searchText = spokenText
+            }
+        }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp)
+            .padding(16.dp)
     ) {
 
+        Spacer(modifier = Modifier.height(20.dp))
+
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 35.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -521,7 +447,168 @@ fun WorkerListScreen(
                 Image(
                     painter = painterResource(id = R.drawable.namma_logo),
                     contentDescription = null,
-                    modifier = Modifier.size(55.dp)
+                    modifier = Modifier.size(60.dp)
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column {
+
+                    Text(
+                        text = "Namma Kelsa",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Building Livelihoods, Empowering Lives",
+                        fontSize = 10.sp
+                    )
+                }
+            }
+
+            Row {
+
+                IconButton(
+                    onClick = {
+                        navController.navigate("admin")
+                    }
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.AdminPanelSettings,
+                        contentDescription = null
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        navController.navigate("worker_page")
+                    }
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.Groups,
+                        contentDescription = null
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        MainActivity.isDarkMode =
+                            !MainActivity.isDarkMode
+                    }
+                ) {
+
+                    Icon(
+                        imageVector =
+                            if (MainActivity.isDarkMode)
+                                Icons.Default.LightMode
+                            else
+                                Icons.Default.DarkMode,
+
+                        contentDescription = null
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            OutlinedTextField(
+                value = searchText,
+
+                onValueChange = {
+                    searchText = it
+                },
+
+                label = {
+                    Text("Search workers")
+                },
+
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(
+                onClick = {
+
+                    val intent = Intent(
+                        RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+                    )
+
+                    intent.putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                    )
+
+                    intent.putExtra(
+                        RecognizerIntent.EXTRA_LANGUAGE,
+                        Locale.getDefault()
+                    )
+
+                    voiceLauncher.launch(intent)
+                }
+            ) {
+
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "⭐ Recommended Workers",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        LazyColumn {
+
+            items(filteredWorkers) { worker ->
+
+                WorkerCard(worker)
+            }
+        }
+    }
+}
+
+@Composable
+fun WorkerPage(navController: NavHostController) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.SpaceBetween,
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Image(
+                    painter = painterResource(id = R.drawable.namma_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
                 )
 
                 Spacer(modifier = Modifier.width(10.dp))
@@ -529,115 +616,576 @@ fun WorkerListScreen(
                 Column {
 
                     Text(
-                        text = "Namma Kelsa",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        text = "Workers Panel",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        text = "Building Livelihoods, Empowering Lives",
-                        fontSize = 11.sp
+                        text = "Namma Kelsa",
+                        fontSize = 12.sp
                     )
                 }
             }
 
-            Switch(
-                checked = isDarkMode,
-                onCheckedChange = {
-                    onThemeChange(it)
+            Row {
+
+                IconButton(
+                    onClick = {
+                        navController.navigate("create_worker")
+                    }
+                ) {
+
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = null
+                    )
                 }
-            )
+
+                IconButton(
+                    onClick = {
+                        MainActivity.isDarkMode =
+                            !MainActivity.isDarkMode
+                    }
+                ) {
+
+                    Icon(
+                        imageVector =
+                            if (MainActivity.isDarkMode)
+                                Icons.Default.LightMode
+                            else
+                                Icons.Default.DarkMode,
+
+                        contentDescription = null
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        AsyncImage(
-            model = "https://img.freepik.com/free-vector/construction-workers-concept-illustration_114360-1396.jpg",
-            contentDescription = null,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            contentScale = ContentScale.Crop
-        )
+        LazyColumn {
 
-        Spacer(modifier = Modifier.height(15.dp))
-
-        OutlinedTextField(
-            value = searchText,
-            onValueChange = {
-                searchText = it
-            },
-            label = {
-                Text("Search skills...")
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(15.dp))
-
-        Row(
-            modifier = Modifier.horizontalScroll(
-                rememberScrollState()
-            ),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-
-            FilterChip(
-                selected = false,
-                onClick = {
-                    searchText = "Painter"
-                },
-                label = {
-                    Text("Painter")
+            items(
+                MainActivity.workerList.filter {
+                    !it.isBlocked
                 }
-            )
+            ) { worker ->
 
-            FilterChip(
-                selected = false,
-                onClick = {
-                    searchText = "Plumber"
-                },
-                label = {
-                    Text("Plumber")
-                }
-            )
-
-            FilterChip(
-                selected = false,
-                onClick = {
-                    searchText = "Gardener"
-                },
-                label = {
-                    Text("Gardener")
-                }
-            )
-
-            FilterChip(
-                selected = false,
-                onClick = {
-                    searchText = "Electrician"
-                },
-                label = {
-                    Text("Electrician")
-                }
-            )
+                WorkerCard(worker)
+            }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(15.dp))
+@Composable
+fun CreateWorkerScreen(navController: NavHostController) {
+
+    var name by remember { mutableStateOf("") }
+    var skill by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var rate by remember { mutableStateOf("") }
+    var rating by remember { mutableStateOf("") }
+    var experience by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+    ) {
 
         Text(
-            text = "Workers Near You",
-            fontSize = 24.sp,
+            text = "Create Worker",
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") }
         )
 
         Spacer(modifier = Modifier.height(10.dp))
 
+        OutlinedTextField(
+            value = skill,
+            onValueChange = { skill = it },
+            label = { Text("Skill") }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = location,
+            onValueChange = { location = it },
+            label = { Text("Location") }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = rate,
+            onValueChange = { rate = it },
+            label = { Text("Rate") }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = rating,
+            onValueChange = { rating = it },
+            label = { Text("Rating") }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = experience,
+            onValueChange = { experience = it },
+            label = { Text("Experience") }
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = imageUrl,
+            onValueChange = { imageUrl = it },
+            label = { Text("Photo URL") }
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(
+            onClick = {
+
+                val worker = Worker(
+                    name,
+                    skill,
+                    location,
+                    rate,
+                    rating.toFloatOrNull() ?: 0f,
+                    experience.toIntOrNull() ?: 0,
+                    listOf(imageUrl)
+                )
+
+                MainActivity.workerList.add(worker)
+
+                MainActivity.historyList.add(
+                    "Added Worker : $name"
+                )
+
+                Toast.makeText(
+                    context,
+                    "Worker Added Successfully",
+                    Toast.LENGTH_SHORT
+                ).show()
+
+                navController.navigate("worker_page")
+            }
+        ) {
+
+            Text("Submit")
+        }
+    }
+}
+
+@Composable
+fun AdminScreen(navController: NavHostController) {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Image(
+                    painter = painterResource(id = R.drawable.namma_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(60.dp)
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column {
+
+                    Text(
+                        text = "Admin Panel",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Namma Kelsa",
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            IconButton(
+                onClick = {
+                    MainActivity.isDarkMode =
+                        !MainActivity.isDarkMode
+                }
+            ) {
+
+                Icon(
+                    imageVector =
+                        if (MainActivity.isDarkMode)
+                            Icons.Default.LightMode
+                        else
+                            Icons.Default.DarkMode,
+
+                    contentDescription = null
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Image(
+                    painter = painterResource(id = R.drawable.mypic),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(110.dp)
+                        .clip(CircleShape)
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+
+                    Text(
+                        text = "NANDITHA",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "Sir MVIT",
+                        fontSize = 18.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "8105983676",
+                        fontSize = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Text(
+                        text = "nandithacl88@gmail.com",
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(30.dp))
+
+        Button(
+            onClick = {
+                navController.navigate("create_worker")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text("Add Worker Manually")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                navController.navigate("delete_worker")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text("Delete Worker Permanently")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                navController.navigate("block_worker")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text("Block Worker")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                navController.navigate("manage_feature")
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            Text("Manage Features")
+        }
+    }
+}
+
+@Composable
+fun DeleteWorkerScreen() {
+
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Text(
+            text = "Delete Workers",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
         LazyColumn {
 
-            items(filteredWorkers) { worker ->
+            itemsIndexed(MainActivity.workerList) { index, worker ->
 
-                WorkerCard(worker)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween,
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Column {
+
+                            Text(
+                                text = worker.name,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(worker.skill)
+                        }
+
+                        IconButton(
+                            onClick = {
+
+                                MainActivity.historyList.add(
+                                    "Deleted Worker : ${worker.name}"
+                                )
+
+                                MainActivity.workerList.removeAt(index)
+
+                                Toast.makeText(
+                                    context,
+                                    "Worker Deleted",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BlockWorkerScreen() {
+
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Text(
+            text = "Block / Unblock Workers",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        LazyColumn {
+
+            itemsIndexed(MainActivity.workerList) { index, worker ->
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+
+                        horizontalArrangement =
+                            Arrangement.SpaceBetween,
+
+                        verticalAlignment =
+                            Alignment.CenterVertically
+                    ) {
+
+                        Column {
+
+                            Text(
+                                text = worker.name,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(worker.skill)
+
+                            if (worker.isBlocked) {
+
+                                Text("Blocked")
+                            }
+                        }
+
+                        IconButton(
+                            onClick = {
+
+                                MainActivity.workerList[index] =
+                                    worker.copy(
+                                        isBlocked = !worker.isBlocked
+                                    )
+
+                                if (!worker.isBlocked) {
+
+                                    MainActivity.historyList.add(
+                                        "Blocked Worker : ${worker.name}"
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Worker Blocked",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+
+                                } else {
+
+                                    MainActivity.historyList.add(
+                                        "Unblocked Worker : ${worker.name}"
+                                    )
+
+                                    Toast.makeText(
+                                        context,
+                                        "Worker Unblocked",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        ) {
+
+
+
+                            Icon(
+                                imageVector =
+                                    if (worker.isBlocked)
+                                        Icons.Default.LockOpen
+                                    else
+                                        Icons.Default.Lock,
+
+                                contentDescription = null
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ManageFeatureScreen() {
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+
+        Text(
+            text = "Admin History",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        LazyColumn {
+
+            items(MainActivity.historyList) { item ->
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp)
+                ) {
+
+                    Text(
+                        text = item,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
         }
     }
@@ -651,73 +1199,81 @@ fun WorkerCard(worker: Worker) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 14.dp),
-        elevation = CardDefaults.cardElevation(5.dp)
+            .padding(vertical = 8.dp),
+
+        elevation =
+            CardDefaults.cardElevation(4.dp)
     ) {
 
         Column(
-            modifier = Modifier.padding(14.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
 
             Text(
                 text = worker.name,
-                fontSize = 24.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
 
-            Text(
-                text = worker.skill,
-                color = Color.Blue,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text("📍 ${worker.location}")
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Text(
-                text = worker.rate,
-                color = Color(0xFF2E7D32),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
-            )
+            Text("Skill: ${worker.skill}")
+            Text("Location: ${worker.location}")
+            Text("Rate: ${worker.rate}")
+            Text("Rating: ⭐ ${worker.rating}")
+            Text("Experience: ${worker.experience} years")
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier.horizontalScroll(
-                    rememberScrollState()
-                ),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row {
 
                 worker.imageUrls.forEach { image ->
 
                     AsyncImage(
                         model = image,
                         contentDescription = null,
-                        modifier = Modifier.size(110.dp)
+                        modifier = Modifier.size(90.dp)
                     )
+
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = {
+            Row {
 
-                    val intent = Intent(Intent.ACTION_DIAL)
-                    intent.data = "tel:8105983676".toUri()
+                Button(
+                    onClick = {
 
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                        val intent =
+                            Intent(Intent.ACTION_DIAL)
 
-                Text("Call")
+                        intent.data =
+                            "tel:8105983676".toUri()
+
+                        context.startActivity(intent)
+                    }
+                ) {
+
+                    Text("Call")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = {
+
+                        Toast.makeText(
+                            context,
+                            "Booking Confirmed",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                ) {
+
+                    Text("Book")
+                }
             }
         }
     }
 }
+
