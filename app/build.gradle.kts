@@ -67,6 +67,10 @@ dependencies {
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
 
+    implementation("com.google.firebase:firebase-database-ktx:21.0.0")
+    implementation("com.google.firebase:firebase-auth-ktx:23.0.0")
+    implementation(libs.firebase.database)
+
     // DEBUG
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
