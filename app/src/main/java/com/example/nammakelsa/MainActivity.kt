@@ -242,7 +242,11 @@ fun WorkerListScreen(navController: NavHostController) {
     val filteredWorkers = MainActivity.workerList.filter {
 
         !it.isBlocked &&
-                it.skill.contains(searchText, ignoreCase = true)
+                (
+                        it.skill.contains(searchText, ignoreCase = true)
+                                ||
+                                it.name.contains(searchText, ignoreCase = true)
+                        )
     }
 
     val voiceLauncher =
@@ -259,6 +263,7 @@ fun WorkerListScreen(navController: NavHostController) {
                     ?.get(0)
 
             if (spokenText != null) {
+
                 searchText = spokenText
             }
         }
@@ -270,6 +275,8 @@ fun WorkerListScreen(navController: NavHostController) {
     ) {
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        // HEADER
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -364,7 +371,181 @@ fun WorkerListScreen(navController: NavHostController) {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // CATEGORY BUTTONS
+
+        Text(
+            text = "Categories",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ROW 1
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            Button(
+                onClick = {
+                    searchText = "Painter"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Painter",
+                    fontSize = 12.sp
+                )
+            }
+
+            Button(
+                onClick = {
+                    searchText = "Plumber"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Plumber",
+                    fontSize = 12.sp
+                )
+            }
+
+            Button(
+                onClick = {
+                    searchText = "Gardener"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Gardener",
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // ROW 2
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            Button(
+                onClick = {
+                    searchText = "Electrician"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Electrician",
+                    fontSize = 11.sp
+                )
+            }
+
+            Button(
+                onClick = {
+                    searchText = "House Keeper"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "House Keeper",
+                    fontSize = 10.sp
+                )
+            }
+
+            Button(
+                onClick = {
+                    searchText = "Nurse"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Nurse",
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // ROW 3
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+
+            horizontalArrangement =
+                Arrangement.spacedBy(8.dp)
+        ) {
+
+            Button(
+                onClick = {
+                    searchText = "Chef"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Chefs",
+                    fontSize = 12.sp
+                )
+            }
+
+            Button(
+                onClick = {
+                    searchText = "Driver"
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "Driver",
+                    fontSize = 12.sp
+                )
+            }
+
+            OutlinedButton(
+                onClick = {
+                    searchText = ""
+                },
+
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = "All",
+                    fontSize = 12.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
+
+        // SEARCH BAR
 
         Row(
             verticalAlignment =
@@ -415,13 +596,7 @@ fun WorkerListScreen(navController: NavHostController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "⭐ Recommended Workers",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
+        // WORKER LIST
 
         LazyColumn {
 
